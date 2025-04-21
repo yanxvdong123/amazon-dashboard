@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon关键词数据分析看板</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #232f3e;
+            color: white;
+            border-radius: 8px;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #232f3e;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            margin-bottom: 15px;
+        }
+        .insights {
+            background-color: #f1f3f6;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .insight-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #e47911;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th, td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .card {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>Amazon关键词数据分析看板</h1>
+            <p>基于多国站点关键词表现的综合分析</p>
+        </div>
+
+        <!-- 价格与月购买量关系 -->
+        <div class="card">
+            <div class="card-title">价格与月购买量关系</div>
+            <div class="chart-container">
+                <canvas id="priceVsSalesChart"></canvas>
+            </div>
+            <div class="insights">
+                <div class="insight-title">数据洞察</div>
+                <p>大多数产品的价格集中在10-50美元区间，这部分产品的销量表现最佳。</p>
+                <p>高价产品(>100美元)如"ice maker"(制冰机)和"carbon monoxide detector"(一氧化碳检测仪)仍有不错的销量。</p>
+                <p>价格低于20美元的产品如"nachtlicht"(夜灯)和"scissors"(剪刀)销量较高。</p>
+            </div>
+        </div>
+
+        <!-- 评分值与月购买量关系 -->
+        <div class="card">
+            <div class="card-title">评分值与月购买量关系</div>
+            <div class="chart-container">
+                <canvas id="ratingVsSalesChart"></canvas>
+            </div>
+            <div class="insights">
+                <div class="insight-title">数据洞察</div>
+                <p>评分在4.3-4.5之间的产品销量最佳，表明消费者更信任中等偏上的评分。</p>
+                <p>评分低于4.0的产品如"forbici potatura a batteria"(电池修枝剪)销量明显较低。</p>
+                <p>评分4.5以上的产品如"lego flores"(乐高花)和"barbie"(芭比娃娃)销量表现优异。</p>
+            </div>
+        </div>
+
+        <!-- 品类分析 -->
+        <div class="card">
+            <div class="card-title">各品类月搜索量与购买量对比</div>
+            <div class="chart-container" id="categoryChart" style="height:400px"></div>
+            <div class="insights">
+                <div class="insight-title">数据洞察</div>
+                <p>"家居及厨房"品类搜索量和购买量都最高，是竞争最激烈的品类。</p>
+                <p>"美容与个人护理"品类转化率较高，搜索量中等但购买量不错。</p>
+                <p>"玩具"品类季节性明显，部分产品如"lego"(乐高)销量突出。</p>
+            </div>
+        </div>
+
+        <!-- 排名趋势分析 -->
+        <div class="card">
+            <div class="card-title">关键词排名变化分析</div>
+            <div class="chart-container" id="rankTrendChart" style="height:400px"></div>
+            <div class="insights">
+                <div class="insight-title">数据洞察</div>
+                <p>"carbon monoxide detector"(一氧化碳检测仪)排名上升最快(从935升至444)。</p>
+                <p>"電気毛布"(电热毯)排名大幅上升(从2821升至1187)，可能是季节性因素。</p>
+                <p>"bosch professional"(博世专业)排名下降明显(从123降至394)。</p>
+            </div>
+        </div>
+
+        <!-- 搜索量激增关键词 -->
+        <div class="card">
+            <div class="card-title">搜索量激增关键词分析</div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>关键词</th>
+                            <th>国家</th>
+                            <th>当前排名</th>
+                            <th>上周排名</th>
+                            <th>月搜索量</th>
+                            <th>月购买量</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>capodastre guitare (吉他变调夹)</td>
+                            <td>法国</td>
+                            <td>7157</td>
+                            <td>8184</td>
+                            <td>13,766</td>
+                            <td>1,159</td>
+                        </tr>
+                        <tr>
+                            <td>pflanztöpfe (植物盆)</td>
+                            <td>德国</td>
+                            <td>7,384</td>
+                            <td>9,829</td>
+                            <td>30,634</td>
+                            <td>1,081</td>
+                        </tr>
+                        <tr>
+                            <td>ナットウキナーゼ (纳豆激酶)</td>
+                            <td>日本</td>
+                            <td>5,759</td>
+                            <td>10,050</td>
+                            <td>17,601</td>
+                            <td>1,012</td>
+                        </tr>
+                        <tr>
+                            <td>rhinestones (水钻)</td>
+                            <td>英国</td>
+                            <td>7,851</td>
+                            <td>11,305</td>
+                            <td>19,356</td>
+                            <td>3,740</td>
+                        </tr>
+                        <tr>
+                            <td>herb planter (草药花盆)</td>
+                            <td>英国</td>
+                            <td>6,672</td>
+                            <td>8,661</td>
+                            <td>17,611</td>
+                            <td>1,189</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="insights">
+                <div class="insight-title">数据洞察</div>
+                <p>季节性产品如"herb planter"(草药花盆)和"pflanztöpfe"(植物盆)搜索量激增，可能与春季园艺活动增加有关。</p>
+                <p>健康相关产品如"ナットウキナーゼ"(纳豆激酶)需求增长明显。</p>
+                <p>DIY和手工艺品材料如"rhinestones"(水钻)搜索量大幅上升。</p>
+            </div>
+        </div>
+
+        <!-- 供需比与点击集中度关系 -->
+        <div class="card">
+            <div class="card-title">供需比与点击集中度关系</div>
+            <div class="chart-container" id="supplyDemandChart" style="height:400px"></div>
+            <div class="insights">
+                <div class="insight-title">数据洞察</div>
+                <p>供需比高的产品(>30)如"deckenlampe"(吸顶灯)点击集中度较低，市场竞争分散。</p>
+                <p>供需比低的产品(<10)如"scissors"(剪刀)点击集中度高，市场被少数卖家主导。</p>
+                <p>美容品类如"makeup bag"(化妆包)供需比较平衡，市场结构健康。</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 价格与销量关系图表
+        const priceVsSalesCtx = document.getElementById('priceVsSalesChart').getContext('2d');
+        const priceVsSalesChart = new Chart(priceVsSalesCtx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: '价格与月购买量',
+                    data: [
+                        {x: 70.28, y: 4263}, {x: 24.78, y: 1846}, {x: 10.79, y: 3509}, 
+                        {x: 97.87, y: 3090}, {x: 10.79, y: 1584}, {x: 30.80, y: 1029},
+                        {x: 10.79, y: 1336}, {x: 26.97, y: 1638}, {x: 21.29, y: 1419},
+                        {x: 15.01, y: 3309}, {x: 30.59, y: 1203}, {x: 34.45, y: 2691},
+                        {x: 11.55, y: 3037}, {x: 27.87, y: 3215}, {x: 14.74, y: 1795}
+                    ],
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: '价格(美元)'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: '月购买量'
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const data = context.raw;
+                                return `价格: $${data.x}  月购: ${data.y}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 评分与销量关系图表
+        const ratingVsSalesCtx = document.getElementById('ratingVsSalesChart').getContext('2d');
+        const ratingVsSalesChart = new Chart(ratingVsSalesCtx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: '评分值与月购买量',
+                    data: [
+                        {x: 4.0, y: 4263}, {x: 4.5, y: 1846}, {x: 4.3, y: 3509}, 
+                        {x: 4.0, y: 3090}, {x: 4.4, y: 1584}, {x: 4.4, y: 1029},
+                        {x: 4.4, y: 1336}, {x: 4.3, y: 1638}, {x: 4.3, y: 1419},
+                        {x: 4.5, y: 3309}, {x: 4.9, y: 1203}, {x: 4.4, y: 2691},
+                        {x: 4.0, y: 3037}, {x: 4.5, y: 3215}, {x: 4.4, y: 1795}
+                    ],
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: '评分值(1-5)'
+                        },
+                        min: 3.5,
+                        max: 5
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: '月购买量'
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const data = context.raw;
+                                return `评分: ${data.x}  月购: ${data.y}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 品类分析图表 (使用ECharts)
+        const categoryChart = echarts.init(document.getElementById('categoryChart'));
+        const categoryOption = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            legend: {
+                data: ['月搜索量', '月购买量']
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'value'
+            },
+            yAxis: {
+                type: 'category',
+                data: ['家居及厨房', '美容与个人护理', '玩具', '健康护理', '庭院花园', '电子产品']
+            },
+            series: [
+                {
+                    name: '月搜索量',
+                    type: 'bar',
+                    data: [155590, 80394, 191344, 53535, 95797, 136428],
+                    itemStyle: {
+                        color: '#FF9F40'
+                    }
+                },
+                {
+                    name: '月购买量',
+                    type: 'bar',
+                    data: [4263, 1584, 2602, 1911, 1638, 1419],
+                    itemStyle: {
+                        color: '#36A2EB'
+                    }
+                }
+            ]
+        };
+        categoryChart.setOption(categoryOption);
+
+        // 排名趋势图表 (使用ECharts)
+        const rankTrendChart = echarts.init(document.getElementById('rankTrendChart'));
+        const rankTrendOption = {
+            title: {
+                text: '关键词排名变化(前15)'
+            },
+            tooltip: {
+                trigger: 'axis'
+            },
+            legend: {
+                data: ['本周排名', '上周排名']
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '
